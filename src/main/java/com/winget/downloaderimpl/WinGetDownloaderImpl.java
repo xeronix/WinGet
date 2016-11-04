@@ -52,7 +52,7 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 	private final boolean isRecursiveEnabled;
 	private final boolean isVerboseEnabled;
 	private final String outputDirectory;
-	
+
 	public WinGetDownloaderImpl(final Map<String, String> paramMap) {
 		rootUrl = paramMap.get(ParameterParser.KEY_URL);
 		outputDirectory = paramMap.get(ParameterParser.KEY_OUTPUT_DIR);

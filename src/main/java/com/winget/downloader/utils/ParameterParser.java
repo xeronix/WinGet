@@ -70,18 +70,26 @@ public class ParameterParser {
 	}
 	
 	private static void validateParamMap(Map<String, String> paramMap) throws WinGetException {
+		String url = paramMap.get(KEY_URL);
+		
+		if (url == null || url.isEmpty()) {
+			throw new WinGetException("Specify a valid url with -u parameter");
+		}
+		
 		String recurseFlag = paramMap.get(KEY_RECURSE);
-		String outputDir = paramMap.get(KEY_OUTPUT_DIR);
-		String verboseFlag = paramMap.get(KEY_VERBOSE);
-
-		if (recurseFlag != TRUE && recurseFlag != FALSE) {
+		
+		if (!recurseFlag.equalsIgnoreCase(TRUE) && !recurseFlag.equalsIgnoreCase(FALSE)) {
 			throw new WinGetException("Invalid value [" + recurseFlag + "] provided for parameter " + ARG_RECURSE);
 		}
 		
-		if (verboseFlag != TRUE && verboseFlag != FALSE) {
+		String verboseFlag = paramMap.get(KEY_VERBOSE);
+
+		if (!verboseFlag.equalsIgnoreCase(TRUE) && !verboseFlag.equalsIgnoreCase(FALSE)) {
 			throw new WinGetException("Invalid value [" + verboseFlag + "] provided for parameter " + ARG_VERBOSE);
 		}
-				
+
+		String outputDir = paramMap.get(KEY_OUTPUT_DIR);
+		
 		File outputDirFile = new File(outputDir);
 		
 		/**

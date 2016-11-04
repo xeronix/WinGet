@@ -11,6 +11,8 @@ public class WinGetMain {
 	public static void main(String args[]) {
 		Map<String, String> paramMap = null;
 		
+		long startTime = System.currentTimeMillis();
+		
 		try {
 			paramMap = ParameterParser.createParameterMap(args);
 		} catch (WinGetException e) {
@@ -20,5 +22,9 @@ public class WinGetMain {
 		
 		WinGetDownloader downloader = new WinGetDownloaderImpl(paramMap);
 		downloader.download();
+		
+		long endTime = System.currentTimeMillis();
+		
+		System.out.println("Total Time Taken : " + (endTime-startTime)/1000 + " seconds.");
 	}
 }
