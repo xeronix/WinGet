@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -30,15 +31,14 @@ import org.apache.log4j.Logger;
 
 import com.winget.downloader.WinGetDownloader;
 import com.winget.downloader.utils.HTTPContentType;
+import com.winget.downloader.utils.ParameterParser;
 
 public class WinGetDownloaderImpl implements WinGetDownloader {
 
 	private final String rootUrl;
 	
 	private final ConcurrentLinkedQueue<String> urlQueue;
-	
-	private final HashMap<String, String> parameterMap;
-	
+		
 	private final CloseableHttpClient httpClient;
 
 	private final String HTTP_PREFIX = "http://";
@@ -50,12 +50,18 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 	// Thread Safe Set
 	private final Set<String> processedUrls;
 	
-	public WinGetDownloaderImpl(final String rootUrl, final HashMap<String, String> parameterMap) {
+	private final boolean isRecursiveEnabled;
+	private final boolean isVerboseEnabled;
+	private final String outputDirectory;
+	
+	public WinGetDownloaderImpl(final Map<String, String> paramMap) {
+		rootUrl = paramMap.get(ParameterParser.KEY_URL);
+		outputDirectory = paramMap.get(ParameterParser.KEY_OUTPUT_DIR);
+		isRecursiveEnabled = Boolean.valueOf(paramMap.get(ParameterParser.KEY_RECURSE));
+		isVerboseEnabled = Boolean.valueOf(paramMap.get(ParameterParser.KEY_VERBOSE));
+		
 		urlQueue = new ConcurrentLinkedQueue<String>();
-		urlQueue.add(rootUrl.trim());
-
-		this.rootUrl = rootUrl;
-		this.parameterMap = parameterMap;
+		urlQueue.add(rootUrl);
 
 		PoolingHttpClientConnectionManager connectionMgr = new PoolingHttpClientConnectionManager();
 		connectionMgr.setMaxTotal(200);
@@ -66,6 +72,9 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 		processedUrls = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 	}
 	
+	/**
+	 * Processes each URL using a new Thread
+	 */
 	public void download() {
 		Set<Thread> threadSet = new HashSet<Thread>();
 		
@@ -110,6 +119,7 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 			it.remove();
 		}
 		
+		// Check again as urlQueue might be updated by thread for which we were waiting
 		if (!urlQueue.isEmpty()) {
 			return false;
 		}
@@ -187,9 +197,11 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 			FileRelativePath = url.substring(rootUrl.length()-1);
 		}
 		
-		String filePath = "E:\\Softwares\\OpenSAML\\" + FileRelativePath;
+		String filePath = outputDirectory + File.separator + FileRelativePath;
 		
-		System.out.println("Downloading file [" + filePath + "] from [" + url + "] ...");
+		if (isVerboseEnabled) {
+			System.out.println("Downloading file [" + filePath + "] from [" + url + "] ...");
+		}
 		
 		InputStream is = null;
 		BufferedInputStream bis = null;
@@ -253,8 +265,10 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 
 		@Override
 		public void run() {
-			System.out.println("Processing URL : " + url);
-
+			if (isVerboseEnabled) {
+				System.out.println("Processing URL : " + url);
+			}
+			
 			CloseableHttpResponse response = null;
 			
 			try {
@@ -267,8 +281,10 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 					String contentTypePrefix = contentType.substring(0, contentType.indexOf("/"));
 
 					if (contentTypePrefix.equalsIgnoreCase(HTTPContentType.TEXT)) {
-						List<String> childUrls = getChildUrls(entity);
-						urlQueue.addAll(childUrls);
+						if (isRecursiveEnabled || url.equalsIgnoreCase(rootUrl)) {
+							List<String> childUrls = getChildUrls(entity);
+							urlQueue.addAll(childUrls);
+						}
 					} else {
 						downloadFile(entity, url);
 					}
