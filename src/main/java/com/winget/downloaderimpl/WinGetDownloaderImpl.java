@@ -24,6 +24,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
+import org.apache.log4j.Logger;
 
 import com.winget.downloader.WinGetDownloader;
 import com.winget.downloader.utils.HTTPContentType;
@@ -42,6 +43,8 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 	
 	private final String HTTPS_PREFIX = "https://";
 		
+	private final static Logger logger = Logger.getLogger(WinGetDownloaderImpl.class);
+	
 	// Thread Safe Set
 	private final Set<String> processedUrls;
 	
@@ -79,13 +82,12 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 			try {
 				thread.join();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(e.getMessage(), e);
 			}
 		}
 	}
 	
-	private List<String> getChildUrls(final HttpEntity entity) throws UnsupportedOperationException, IOException {
+	private List<String> getChildUrls(final HttpEntity entity) {
 		InputStream is = null;
 		BufferedReader br = null;
 		
@@ -118,23 +120,35 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 						}
 					}
 				} catch (Exception e) {
-					System.out.println("Error retreiving URL from page line : " + line);
+					logger.error("Error retreiving URL from page line : " + line + "\n" + e.getMessage(), e);
 				}
 			}
-		} finally {
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+		}finally {
 			if (is != null) {
-				is.close();
+				try {
+					is.close();
+				} catch (IOException e) {
+					logger.error(e.getMessage(), e);
+					is = null;
+				}
 			}
 			
 			if (br != null) {
-				br.close();
+				try {
+					br.close();
+				} catch (IOException e) {
+					logger.error(e.getMessage(), e);
+					br = null;
+				}
 			}
 		}
 
 		return childUrls;
 	}
 
-	private void downloadFile(final HttpEntity entity, final String url) throws IOException {
+	private void downloadFile(final HttpEntity entity, final String url) {
 		String FileRelativePath;
 		
 		if (rootUrl.endsWith("/")) {
@@ -164,17 +178,34 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 			while ((byteData = bis.read()) != -1) {
 				bos.write(byteData);
 			}
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
 		} finally {
 			if (is != null) {
-				is.close();
+				try {
+					is.close();
+				} catch (IOException e) {
+					logger.error(e.getMessage(), e);
+					is = null;
+				}
 			}
 			
 			if (bis != null) {
-				bis.close();
+				try {
+					bis.close();
+				} catch (IOException e) {
+					logger.error(e.getMessage(), e);
+					bis = null;
+				}
 			}
 			
 			if (bos != null) {
-				bos.close();
+				try {
+					bos.close();
+				} catch (IOException e) {
+					logger.error(e.getMessage(), e);
+					bos = null;
+				}
 			}
 		}
 	}
@@ -213,14 +244,13 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 					}
 				}
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error(e.getMessage(), e);
 			} finally {
 				try {
 					response.close();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					logger.error(e.getMessage(), e);
+					response = null;
 				}
 			}
 		}
