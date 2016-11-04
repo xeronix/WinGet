@@ -11,6 +11,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,9 +66,10 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 		processedUrls = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 	}
 	
-	@Override
 	public void download() {
-		while (!urlQueue.isEmpty()) {
+		Set<Thread> threadSet = new HashSet<Thread>();
+		
+		while (!stopProcessing(threadSet)) {
 			String url = urlQueue.poll();
 			
 			// Make sure no URL is processed more than once
@@ -78,13 +81,40 @@ public class WinGetDownloaderImpl implements WinGetDownloader {
 			
 			DownloaderThread thread = new DownloaderThread(httpClient, url);
 			thread.start();
-			
-			try {
-				thread.join();
-			} catch (InterruptedException e) {
-				logger.error(e.getMessage(), e);
-			}
+			threadSet.add(thread);
 		}
+	}
+	
+	/*
+	 * We have a set of started threads. If urlQueue is empty and if any thread is
+	 * running then that thread might add urls to urlQueue, so we keep waiting
+	 * for that running thread to join back.
+	 */
+	private boolean stopProcessing(Set<Thread> threadSet) {
+		if (!urlQueue.isEmpty()) {
+			return false;
+		}
+		
+		Iterator<Thread> it = threadSet.iterator();
+		
+		while (it.hasNext()) {
+			Thread thread = it.next();
+			if (thread.isAlive()) {
+				try {
+					thread.join();
+				} catch (InterruptedException e) {
+					logger.error(e.getMessage(), e);
+				}
+			}
+			
+			it.remove();
+		}
+		
+		if (!urlQueue.isEmpty()) {
+			return false;
+		}
+		
+		return true;
 	}
 	
 	private List<String> getChildUrls(final HttpEntity entity) {
