@@ -24,8 +24,8 @@ public class ParameterParser {
 	private static final String HELP_TEXT = "WinGet is an HTTP Client based Java Tool to mirror "
 			+ "all files in an online repository or website recursively to a local directory. "
 			+ "Mirroring will maintain the directory structure of the files.\n" +
-			"Usage : winget.bat -help -u <string> -r <true/false> -o <string> -v <true/false>\n" +
-			"-help : Display help text" +
+			"Usage : java -jar winget.jar -help -u <string> -r <true/false> -o <string> -v <true/false>\n" +
+			"-help : Display help text\n" +
 			"-u : URL\n" + 
 			"-r : Flag to enable/disable recursively mirroring child URLs [Optional, default is false]\n" + 
 			"-o : Location of output directory to save downloaded files [default is WinGetOutpuDir]\n" +
@@ -42,7 +42,7 @@ public class ParameterParser {
 		paramMap.put(KEY_OUTPUT_DIR, DEFAULT_OUTPUT_DIR);
 		paramMap.put(KEY_VERBOSE, FALSE);
 
-		for (int i = 0; i < args.length-1; i+=2) {
+		for (int i = 0; i < args.length; i+=2) {
 			switch(args[i]) {
 			case ARG_HELP:
 					System.out.println(HELP_TEXT);
